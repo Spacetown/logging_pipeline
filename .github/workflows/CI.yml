@@ -104,6 +104,10 @@ jobs:
       - name: Run tests
         run: |
           tests/run_tests.sh
+
+      - name: Generate release notes
+        run: |
+          sed -n "/## $(sed -n '/^## / { s/^## //; p; }' CHANGELOG.md | head -n 1)}/, /## / { /## /! p; }" CHANGELOG.md > RELEASE_NOTES.md
   
       - name: Upload distribution
         if: ${{ env.DO_RELEASE == 'true' }}
@@ -122,6 +126,7 @@ jobs:
         uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191
         with:
           tag_name: ${{ env.LOGGING_PIPELINE_VERSION }}
+          body_path: RELEASE_NOTES.md
           files: dist/*
 
       - name: Publish to PyPi

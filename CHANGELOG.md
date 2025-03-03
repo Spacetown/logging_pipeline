@@ -1,6 +1,10 @@
 
 # Changelog
 
+## 0.1.2
+
+- Fix description and add release notes.
+
 ## 0.1.1
 
 - Fix installation instruction and development state.
