@@ -13,7 +13,7 @@ dynamic = [
     "version",
     "readme",
 ]
-name = "logging_pipeline"
+name = "logging-pipeline"
 license = "BSD-3-Clause"
 license-files = [
     "LICENSE"
@@ -24,7 +24,7 @@ authors = [
 description = "Inject logging formatter for Azure and GitHub pipelines"
 requires-python = ">=3.9"
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
@@ -47,7 +47,7 @@ classifiers = [
     "Topic :: Utilities",
 ]
 keywords = [
-    "pipeline",
+    "Pipeline",
     "GitHub",
     "Azure",
     "ADO",

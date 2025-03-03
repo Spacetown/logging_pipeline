@@ -1,11 +1,11 @@
-# logging_pipeline
+# logging-pipeline
 
 Python module to inject logging handler for printing message in the format captured by pipeline.
 
 Install with:
 
 ```bash
-pip install logging_pipeline
+pip install logging-pipeline
 ```
 
 If logging is imported a handler is added to the root logger to print the error and warning messages
@@ -17,7 +17,7 @@ is executed outside a pipeline nothing is printed. Supported pipelines are:
 
 ## Compatibility
 
-`logging_pipeline` uses a live-patching system to target the `logging` library and add a handler.
+`logging-pipeline` uses a live-patching system to target the `logging` library and add a handler.
 
 ## PyInstaller
 
