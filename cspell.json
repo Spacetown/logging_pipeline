@@ -1,0 +1,39 @@
+{
+    "version": "0.2",
+    "files": [
+        "/**"
+    ],
+    "ignorePaths": [
+        "/.git/",
+        "**/.venv/",
+        "src/logging_pipeline/bootstrap.py"
+    ],
+    "dictionaryDefinitions": [],
+    "dictionaries": [],
+    "enableGlobDot": true,
+    "words": [
+        "devcontainers",
+        "levelno",
+        "logissue",
+        "pycache",
+        "PYPI",
+        "pyproject",
+        "venv"
+    ],
+    "ignoreWords": [
+        "Förderer",
+        "Spacetown",
+        "autorun",
+        "charliermarsh",
+        "esac",
+        "nwgh",
+        "sdist",
+        "setuptools",
+        "seunlanlege"
+    ],
+    "ignoreRegExpList": [
+        // GH actions
+        "uses: [^\\s]+/[^\\s]+@[^\\s]+"
+    ],
+    "import": []
+}

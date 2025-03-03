@@ -1,0 +1,19 @@
+# see https://editorconfig.org
+
+root = true
+
+[*]
+indent_style = space
+# end_of_line = not relevant because managed by Git
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.py]
+indent_size = 4
+
+[*.json]
+
+[*.sh]
+# Declare that the script files will always have LF line endings on checkout.
+# Otherwise using cygwin and WSL to execute these will fail if checkout is done on Windows.
+end_of_line = lf

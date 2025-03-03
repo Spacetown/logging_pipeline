@@ -1,0 +1,36 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"actionButtons": {
+			"commands": [
+				{
+					"name": "Build",
+					"command": "rm -rf dist ; python3 -m build"
+				},
+				{
+					"name": "Check wheel",
+					"command": "python3 -m twine check dist/*"
+				},
+				{
+					"name": "Test",
+					"command": "./tests/run_tests.sh"
+				}
+			],
+			"defaultColor": "white",
+			"reloadButton": "↻",
+			"loadNpmCommands": false
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"seunlanlege.action-buttons",
+			"streetsidesoftware.code-spell-checker",
+			"charliermarsh.ruff",
+			"nwgh.bandit"
+	]
+	}
+}
