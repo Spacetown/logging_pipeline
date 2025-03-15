@@ -74,13 +74,13 @@ echo "   Check if Azure pipeline output is found"
     export TF_BUILD=1
     (
         python3 -c "import logging; logging.warning('Test warning')" 2>&1 1>&2
-    ) | grep -F '##vso[task.logissue type=warning]Test warning' > nul
+    ) | grep -F '##vso[task.logissue type=warning]Test warning' > /dev/null
     (
         python3 -c "import logging; logging.error('Test error')"  2>&1 1>&2
-    ) | grep -F '##vso[task.logissue type=error]Test error' > nul
+    ) | grep -F '##vso[task.logissue type=error]Test error' > /dev/null
     (
         python3 -c "import logging; logging.critical('Test critical')" 2>&1 1>&2
-    ) | grep -F '##vso[task.logissue type=error]Test critical' > nul
+    ) | grep -F '##vso[task.logissue type=error]Test critical' > /dev/null
 )
 
 echo "   Check if GitHub pipeline output is found"
