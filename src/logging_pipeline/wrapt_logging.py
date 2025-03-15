@@ -11,8 +11,8 @@ elif "GITHUB_ACTIONS" in os.environ:
     WARNING_MESSAGE_FMT = "::warning::%(message)s"
     ERROR_MESSAGE_FMT = "::error::%(message)s"
 else:
-    WARNING_MESSAGE_FMT = None
-    ERROR_MESSAGE_FMT = None
+    WARNING_MESSAGE_FMT = os.environ.get("LOGGING_PIPELINE_WARNING_MESSAGE_FORMAT")
+    ERROR_MESSAGE_FMT = os.environ.get("LOGGING_PIPELINE_ERROR_MESSAGE_FORMAT")
 
 default_handler = None
 warning_handler = None
@@ -43,23 +43,27 @@ def pipeline_handler(logging):
     if default_handler is None:
         default_handler = logging.StreamHandler()
         default_handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
-    if warning_handler is None:
+    if warning_handler is None and WARNING_MESSAGE_FMT is not None:
         warning_handler = get_handler_for_levels(
             (logging.WARNING,), WARNING_MESSAGE_FMT
         )
-    if error_handler is None:
+    if error_handler is None and ERROR_MESSAGE_FMT is not None:
         error_handler = get_handler_for_levels(
             (logging.ERROR, logging.CRITICAL), ERROR_MESSAGE_FMT
         )
 
     def remove_logging_handlers():
         logging.getLogger().removeHandler(default_handler)
-        logging.getLogger().removeHandler(warning_handler)
-        logging.getLogger().removeHandler(error_handler)
+        if warning_handler is not None:
+            logging.getLogger().removeHandler(warning_handler)
+        if error_handler is not None:
+            logging.getLogger().removeHandler(error_handler)
 
     def add_logging_handlers():
-        logging.getLogger().addHandler(warning_handler)
-        logging.getLogger().addHandler(error_handler)
+        if warning_handler is not None:
+            logging.getLogger().addHandler(warning_handler)
+        if error_handler is not None:
+            logging.getLogger().addHandler(error_handler)
 
     # The default handler only needs to be applied here and not with basicConfig
     logging.getLogger().addHandler(default_handler)

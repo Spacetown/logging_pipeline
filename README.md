@@ -14,7 +14,10 @@ is executed outside a pipeline nothing is printed. Supported pipelines are:
 
 - Azure pipelines
 - GitHub actions
-
+- User defined by environment variables `LOGGING_PIPELINE_WARNING_MESSAGE_FORMAT` and
+  `LOGGING_PIPELINE_ERROR_MESSAGE_FORMAT`. The value is used to configure the python logger with
+  `{}`-format, see [LogRecord attributes](https://docs.python.org/3/library/logging.html#logrecord-attributes).
+    E.g. `LOGGING_PIPELINE_ERROR_MESSAGE_FORMAT="::%(filename)s:%(lineno)d::%(levelname)s::%(message)s::"`
 ## Compatibility
 
 `logging-pipeline` uses a live-patching system to target the `logging` library and add a handler.

@@ -13,6 +13,7 @@
     "enableGlobDot": true,
     "words": [
         "devcontainers",
+        "levelname",
         "levelno",
         "logissue",
         "pycache",
