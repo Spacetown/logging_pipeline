@@ -1,6 +1,10 @@
 
 # Changelog
 
+## 0.3.0
+
+- Add support for python 3.7 and 3.8.
+
 ## 0.2.0
 
 - Fix redirection in test where a file `nul` was created in working directory.
