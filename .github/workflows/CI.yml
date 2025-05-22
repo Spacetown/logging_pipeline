@@ -38,7 +38,7 @@ jobs:
           bandit -c pyproject.toml -r .
 
   docker:
-    needs: 
+    needs:
       - pre-checks
     runs-on: ubuntu-22.04
     permissions:
@@ -48,12 +48,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: 
+        image:
+          - 3.8-bookworm
           - 3.9-bookworm
           - 3.10-bookworm
           - 3.11-bookworm
           - 3.12-bookworm
-          - 3.13-bookworm      
+          - 3.13-bookworm
     steps:
       - uses: actions/checkout@v4
         with:
@@ -88,11 +89,11 @@ jobs:
           # Create the tag and print the output. Do not push.
           git tag -a -m "$LOGGING_PIPELINE_VERSION ($(date -I))" $LOGGING_PIPELINE_VERSION
           git tag --list -n "$LOGGING_PIPELINE_VERSION"
-  
+
       - name: Install dependencies
         run: |
           pip install build twine ruff bandit
-    
+
       - name: Build package
         run: |
           python -m build
@@ -108,7 +109,7 @@ jobs:
       - name: Generate release notes
         run: |
           sed -n "/## $(sed -n '/^## / { s/^## //; p; }' CHANGELOG.md | head -n 1)/, /## / { /## /! p; }" CHANGELOG.md > RELEASE_NOTES.md
-  
+
       - name: Upload distribution
         if: ${{ env.DO_RELEASE == 'true' }}
         uses: actions/upload-artifact@v4
