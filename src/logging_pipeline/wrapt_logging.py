@@ -14,7 +14,6 @@ else:
     WARNING_MESSAGE_FMT = os.environ.get("LOGGING_PIPELINE_WARNING_MESSAGE_FORMAT")
     ERROR_MESSAGE_FMT = os.environ.get("LOGGING_PIPELINE_ERROR_MESSAGE_FORMAT")
 
-default_handler = None
 warning_handler = None
 error_handler = None
 
@@ -37,12 +36,8 @@ def pipeline_handler(logging):
         handler.addFilter(lambda record: record.levelno in levelno)
         return handler
 
-    global default_handler
     global warning_handler
     global error_handler
-    if default_handler is None:
-        default_handler = logging.StreamHandler()
-        default_handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
     if warning_handler is None and WARNING_MESSAGE_FMT is not None:
         warning_handler = get_handler_for_levels(
             (logging.WARNING,), WARNING_MESSAGE_FMT
@@ -52,27 +47,22 @@ def pipeline_handler(logging):
             (logging.ERROR, logging.CRITICAL), ERROR_MESSAGE_FMT
         )
 
-    def remove_logging_handlers():
-        logging.getLogger().removeHandler(default_handler)
+    def remove_logging_handlers(instance):
         if warning_handler is not None:
-            logging.getLogger().removeHandler(warning_handler)
+            instance.removeHandler(warning_handler)
         if error_handler is not None:
-            logging.getLogger().removeHandler(error_handler)
+            instance.removeHandler(error_handler)
 
-    def add_logging_handlers():
+    def add_logging_handlers(instance):
         if warning_handler is not None:
-            logging.getLogger().addHandler(warning_handler)
+            instance.addHandler(warning_handler)
         if error_handler is not None:
-            logging.getLogger().addHandler(error_handler)
+            instance.addHandler(error_handler)
 
-    # The default handler only needs to be applied here and not with basicConfig
-    logging.getLogger().addHandler(default_handler)
-    add_logging_handlers()
-
-    def basic_config(wrapped, _instance, args, kwargs):
+    def call_handlers(wrapped, instance, args, kwargs):
         """Patch the basicConfig function."""
-        remove_logging_handlers()
+        add_logging_handlers(instance)
         wrapped(*args, **kwargs)
-        add_logging_handlers()
+        remove_logging_handlers(instance)
 
-    wrapt.wrap_function_wrapper(logging, "basicConfig", basic_config)
+    wrapt.wrap_function_wrapper(logging, "Logger.callHandlers", call_handlers)

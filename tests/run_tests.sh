@@ -38,6 +38,10 @@ function runOneLinerNotExpected {
     if [ $? == 0 ] ; then
         exit 1
     fi
+    if ! grep -F ":root:" $stderr > /dev/null ; then
+        echo "Output of root logger not found"
+        exit 1
+    fi
 }
 
 function runOneLinerExpected {
@@ -54,6 +58,10 @@ function runOneLinerExpected {
     if [ "${GITHUB_ACTIONS}" != "" ] ; then echo "stop$$" ; fi
     grep -F "$expected" $stderr > /dev/null
     if [ $? != 0 ] ; then
+        exit 1
+    fi
+    if ! grep -F ":root:" $stderr > /dev/null ; then
+        echo "Output of root logger not found"
         exit 1
     fi
 }
