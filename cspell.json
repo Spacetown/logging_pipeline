@@ -20,6 +20,7 @@
         "pycache",
         "PYPI",
         "pyproject",
+        "tomlkit",
         "venv"
     ],
     "ignoreWords": [

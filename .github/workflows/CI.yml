@@ -5,6 +5,11 @@ name: Run logging-pipeline CI
 
 on:
   workflow_dispatch: # For manual triggering
+    inputs:
+      do_test_release:
+        type: boolean
+        description: Do a release to test.pypi.org
+        default: false
   push:
     branches:
       - main
@@ -19,9 +24,45 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: read
+    outputs:
+      tag: ${{ steps.outputs.get_version.tag }}
+      tag_message: ${{ steps.outputs.get_version.tag_message }}
+
+      # The variables used for publishing the data
+      publish_run_job: ${{ (github.repository == 'Spacetown/logging_pipeline') && (github.event.ref == 'refs/heads/main') && (steps.outputs.get_version.tag != '') || inputs.do_test_release }}
+      publish_environment_name: ${{ (((steps.outputs.get_version.tag == '') || inputs.do_test_release) && 'test.pypi') || 'pypi' }}
+      publish_environment_url: https://${{ (((steps.outputs.get_version.tag == '') || inputs.do_test_release) && 'test.pypi') || 'pypi' }}.org/p/gcovr
+      publish_push_tag: ${{ (github.repository == 'Spacetown/logging_pipeline') && (github.event.ref == 'refs/heads/main') && (steps.outputs.get_version.tag != '') }}
+      # Use https://upload.pypi.org/legacy for a tag in pypi environment or in all other cases https://test.pypi.org/legacy
+      publish_repository_url: https://${{ (((steps.outputs.get_version.tag == '') || inputs.do_test_release) && 'test.pypi') || 'upload.pypi' }}.org/legacy/
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Generate release notes
+        run: |
+          sed -n "/## $(sed -n '/^## / { s/^## //; p; }' CHANGELOG.md | head -n 1)/, /## / { /## /! p; }" CHANGELOG.md > RELEASE_NOTES.md
+
+      - name: Set release notes as job summary
+        run: |
+          cat RELEASE_NOTES.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload release notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: RELEASE_NOTES.md
+
+      - name: Get version
+        id: get_version
+        run: |
+          FirstHeading="$(sed -n '/^## / { s/^## //; p; }' CHANGELOG.md | head -n 1)"
+          tag="$(echo "$FirstHeading" | sed -n '/^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/ p')"
+          if [[ ! -z "$tag" ]] ; then
+            echo "tag=$tag" >> $GITHUB_OUTPUT
+            echo "tag_message=$tag_message ($(date -I))" >> $GITHUB_OUTPUT
+          fi
 
       - name: Install spellchecker
         run: |
@@ -55,9 +96,10 @@ jobs:
       - pre-checks
     runs-on: ubuntu-22.04
     permissions:
-      contents: write
+      contents: read
     container:
       image: python:${{ matrix.image }}
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -67,32 +109,57 @@ jobs:
           - 3.10-bookworm
           - 3.11-bookworm
           - 3.12-bookworm
-          - 3.13-bookworm
+        upload_artifact:
+          - false
+
+        include:
+          - image: 3.13-bookworm
+            upload_artifact: true
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 75
-          fetch-tags: true
+          fetch-depth: ${{ (matrix.upload_artifact && 75) || 1 }}
 
-      - name: Set up environment
+      - name: Fetch tags
         run: |
-          FirstHeading="$(sed -n '/^## / { s/^## //; p; }' CHANGELOG.md | head -n 1)"
-          LOGGING_PIPELINE_VERSION="$(echo "$FirstHeading" | sed -n '/^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/ p')"
-          echo "LOGGING_PIPELINE_VERSION=$LOGGING_PIPELINE_VERSION" >> $GITHUB_ENV
+          git config --global --add safe.directory $PWD
+          git fetch --tags
+        shell: bash
 
-          if [ -z "$LOGGING_PIPELINE_VERSION" ] ; then
-            DO_RELEASE=false
-          else
-            case "${{ github.repository }}@${{ github.event.ref }}-${{ matrix.image }}" in
-              Spacetown/logging_pipeline@refs/heads/main-3.13-bookworm)    DO_RELEASE=true ;;
-              *)                                                           DO_RELEASE=false ;;
-            esac
-          fi
-          echo "DO_RELEASE=$DO_RELEASE" >> $GITHUB_ENV
+      - name: Print job variables
+        run: |
+          echo '''${{ toJSON(needs) }}'''
+          echo '''${{ toJSON(matrix) }}'''
+
+      # ---------------------------------------------------------------------------------------------
+      # Deactivating the local version prefix for test releases
+      # ---------------------------------------------------------------------------------------------
+      - name: Install pipeline dependencies
+        if: ${{ matrix.upload_artifact && inputs.do_test_release }}
+        run: python -m pip install --user tomlkit
+      - name: Patch pyproject.toml to turn of local version part
+        if: ${{ matrix.upload_artifact && inputs.do_test_release }}
+        run: |
+          from pathlib import Path
+
+          import tomlkit
+
+          pyproject_toml_path = Path.cwd() / 'pyproject.toml'
+          pyproject_toml_txt = pyproject_toml_path.read_text()
+          pyproject_toml = tomlkit.loads(pyproject_toml_txt)
+          setuptools_scm_section = pyproject_toml['tool']['hatch']['version']['raw-options']
+          setuptools_scm_section['local_scheme'] = 'no-local-version'
+          patched_pyproject_toml_txt = tomlkit.dumps(pyproject_toml)
+          pyproject_toml_path.write_text(patched_pyproject_toml_txt)
+        shell: python
+      - name: Assume pyproject.toml as unchanged
+        if: ${{ matrix.upload_artifact && inputs.do_test_release }}
+        run: git update-index --assume-unchanged pyproject.toml
+        shell: bash
 
       - name: Create new tag without pushing to get the correct name of the wheel
-        if: ${{ env.LOGGING_PIPELINE_VERSION != '' }}
+        if: ${{ needs.pre-checks.outputs.tag != '' }}
         run: |
           git config --global --add safe.directory $PWD
 
@@ -101,8 +168,8 @@ jobs:
           git config --global user.name "Michael Förderer"
 
           # Create the tag and print the output. Do not push.
-          git tag -a -m "$LOGGING_PIPELINE_VERSION ($(date -I))" $LOGGING_PIPELINE_VERSION
-          git tag --list -n "$LOGGING_PIPELINE_VERSION"
+          git tag -a -m "${{ needs.pre-checks.outputs.tag_message }}" ${{ needs.pre-checks.outputs.tag }}
+          git tag --list -n ${{ needs.pre-checks.outputs.tag }}
 
       - name: Install dependencies
         run: |
@@ -112,42 +179,87 @@ jobs:
         run: |
           python -m build
 
-      - name: Build package
+      - name: Check package
         run: |
           twine check dist/*
+
+      - name: Upload distribution 📦
+        if: ${{ matrix.upload_artifact }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/**
 
       - name: Run tests
         run: |
           tests/run_tests.sh
 
-      - name: Generate release notes
-        run: |
-          sed -n "/## $(sed -n '/^## / { s/^## //; p; }' CHANGELOG.md | head -n 1)/, /## / { /## /! p; }" CHANGELOG.md > RELEASE_NOTES.md
+  # -----------------------------------------------------------------------------------------------
+  publish:
+  # -----------------------------------------------------------------------------------------------
+    needs: [pre-checks, docker]
+    if: ${{ needs.pre-checks.outputs.publish_run_job == 'true' }}
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+    environment:  # Environment for trusted publishing
+      name: ${{ needs.pre-checks.outputs.publish_environment_name }}
+      url: ${{ needs.pre-checks.outputs.publish_environment_url }}
+    env:
+      FORCE_COLOR: "1"
+    timeout-minutes: 10
 
-      - name: Upload distribution
-        if: ${{ env.DO_RELEASE == 'true' }}
-        uses: actions/upload-artifact@v4
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Print job variables
+        run: echo '''${{ toJSON(needs) }}'''
+
+      - name: Check if all needed jobs succeed
+        uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
         with:
-          name: dist
-          path: dist/**
+          jobs: ${{ toJSON(needs) }}
+
+      - name: Create new tag without pushing to get the correct name of the wheel
+        if: ${{ needs.pre-checks.outputs.tag != '' }}
+        run: |
+          git config --global --add safe.directory $PWD
+
+          # Set git user info
+          git config --global user.email "40258682+spacetown@users.noreply.github.com"
+          git config --global user.name "Michael Förderer"
+
+          # Create the tag and print the output. Do not push.
+          git tag -a -m "${{ needs.pre-checks.outputs.tag_message }}" ${{ needs.pre-checks.outputs.tag }}
+          git tag --list -n ${{ needs.pre-checks.outputs.tag }}
+
+      - name: Download all the distribution 📦
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Download the release notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
 
       - name: Push new tag
-        if: ${{ env.DO_RELEASE == 'true' }}
+        if: ${{ needs.pre-checks.outputs.publish_push_tag == 'true' }}
         run: |
-          git push origin refs/tags/$LOGGING_PIPELINE_VERSION
+          git push origin "refs/tags/${{ needs.pre-checks.outputs.tag }}"
 
       - name: Create release and upload build artifacts
-        if: ${{ env.DO_RELEASE == 'true' }}
+        if: ${{ needs.pre-checks.outputs.publish_push_tag == 'true' }}
         uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191
         with:
-          tag_name: ${{ env.LOGGING_PIPELINE_VERSION }}
+          tag_name: ${{ needs.pre-checks.outputs.tag }}
           body_path: RELEASE_NOTES.md
-          files: dist/*
 
-      - name: Publish to PyPi
-        if: ${{ env.DO_RELEASE == 'true' }}
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: |
-          twine upload dist/*
+      - name: Publish distribution 📦 to ${{ ((needs.pre-checks.outputs.tag == '') && 'test.pypi') || 'pypi' }}.org
+        if: ${{ (needs.pre-checks.outputs.publish_push_tag == 'true') || ((github.repository == 'Spacetown/logging_pipeline') && inputs.do_test_release) }}
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc
+        with:
+          repository-url: ${{ needs.pre-checks.outputs.publish_repository_url }}
+          verbose: ${{ inputs.do_test_release || false }}

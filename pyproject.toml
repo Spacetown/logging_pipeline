@@ -67,6 +67,9 @@ include = [
   "src/logging_pipeline/",
 ]
 
+[tool.hatch.version.raw-options]
+version_scheme = "no-guess-dev"
+
 [tool.hatch.build.targets.wheel.hooks.autorun]
 code = """
 __import__('logging_pipeline.bootstrap')

@@ -10,7 +10,8 @@
 				"streetsidesoftware.code-spell-checker",
 				"seunlanlege.action-buttons",
 				"charliermarsh.ruff",
-				"nwgh.bandit"
+				"nwgh.bandit",
+				"EditorConfig.EditorConfig"
 			]
 		}
 	},
