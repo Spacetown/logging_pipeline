@@ -17,6 +17,7 @@
         "levelno",
         "logissue",
         "mapfile",
+        "pathlib",
         "pycache",
         "PYPI",
         "pyproject",

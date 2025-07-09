@@ -1,6 +1,10 @@
 
 # Changelog
 
+## 0.5.0
+
+- Add trusted publisher.
+
 ## 0.4.0
 
 - Do not add a default log handler.
