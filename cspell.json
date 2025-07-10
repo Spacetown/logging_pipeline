@@ -5,6 +5,7 @@
     ],
     "ignorePaths": [
         "/.git/",
+        "/.gitbugtraq",
         "**/.venv/",
         "src/logging_pipeline/bootstrap.py"
     ],
@@ -33,7 +34,8 @@
         "nwgh",
         "sdist",
         "setuptools",
-        "seunlanlege"
+        "seunlanlege",
+        "gitbugtraq"
     ],
     "ignoreRegExpList": [
         // GH actions
