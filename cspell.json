@@ -17,9 +17,11 @@
         "levelno",
         "logissue",
         "mapfile",
+        "pathlib",
         "pycache",
         "PYPI",
         "pyproject",
+        "tomlkit",
         "venv"
     ],
     "ignoreWords": [
